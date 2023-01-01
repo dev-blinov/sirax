@@ -1,14 +1,25 @@
 const axios = require('axios');
 const crypto = require('crypto');
+const Cache = require('../services/Cache');
 
-const createRequest = ({ path, params }) => {
-  return axios.get(`${process.env.BINANCE_API_URL}${path}`, {
-    params,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-MBX-APIKEY': process.env.BINANCE_API_KEY,
-    },
-  });
+const request = async ({ path, params }) => {
+  const cacheKey = Cache.getCacheKey(path, params);
+  const cache = await Cache.getCache(cacheKey);
+  if (cache) return cache;
+
+  try {
+    const { data } = await axios.get(`${process.env.BINANCE_API_URL}${path}`, {
+      params,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-MBX-APIKEY': process.env.BINANCE_API_KEY,
+      },
+    });
+    Cache.writeCache(cacheKey, data);
+    return data;
+  } catch (err) {
+    console.log(err);
+  }
 };
 
 const buildQueryString = params => {
@@ -23,15 +34,15 @@ const stringifyKeyValuePair = ([key, value]) => {
   return `${key}=${encodeURIComponent(valueString)}`;
 };
 
-
 const signRequest = ({ path, params }, isPublic = false) => {
-  const queryString = buildQueryString(params);
+  const timestamp = Date.now();
+  const queryString = buildQueryString({ ...params, timestamp });
   const signature = crypto
-    .createHmac( 'sha256', process.env.BINANCE_SECRET_KEY)
+    .createHmac('sha256', process.env.BINANCE_SECRET_KEY)
     .update(queryString)
     .digest('hex');
 
-  return createRequest({ path, params: { ...params, signature } })
+  return request({ path, params: { ...params, timestamp, signature } });
 };
 
 /**
@@ -50,6 +61,20 @@ const getAccount = () => signRequest({ path: '/api/v3/account' });
  * {@link https://binance-docs.github.io/apidocs/spot/en/#exchange-information}
  *
  */
-const getExchangeInfo = () => createRequest({ path: '/api/v3/exchangeInfo' });
+const getExchangeInfo = async () => {
+  try {
+    return request({ path: '/api/v3/exchangeInfo' });
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+const getKLines = async (params) => {
+  try {
+    return request({ path: '/api/v3/klines', params });
+  } catch (err) {
+    console.log(err);
+  }
+};
 
 module.exports = { getAccount, getExchangeInfo };

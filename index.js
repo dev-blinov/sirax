@@ -1,9 +1,9 @@
-const express = require('express');
-const app = express();
-const routers = require('./routes');
+const mongoose = require('mongoose');
+const app = require('./app');
 
-app.use('/', routers);
-
-app.listen(process.env.PORT, () => {
-  console.log(`Example app listening on port ${process.env.PORT}`);
+let server;
+mongoose.connect(process.env.MONGO_CONNECT_URL, {}).then(() => {
+  server = app.listen(process.env.PORT, () => {
+    console.log(`Listening to port ${process.env.PORT}`);
+  });
 });
