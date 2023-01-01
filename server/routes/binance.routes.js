@@ -1,4 +1,5 @@
 const express = require('express');
+const dayjs = require('dayjs');
 const router = express.Router();
 const Binance = require('../services/Binance');
 
@@ -20,13 +21,18 @@ router.get('/exchange-info', async (req, res) => {
   }
 });
 
-router.get('/klines', async (req, res) => {
+router.get('/history/:symbol', async (req, res) => {
   try {
-    const { symbol, startTime, endTime, limit = 1000 } = res.query;
-    const data = await Binance.getKLines({ symbol, startTime, endTime, limit });
+    const {
+      interval = '1d',
+      limit = 1000
+    } = res.query || {};
+    const { symbol } = req.params;
+    const data = await Binance.getKLines({ symbol, interval, limit });
+    console.log(data);
     res.json(data);
   } catch (err) {
-    console.error(err.response);
+    console.error(err);
   }
 });
 

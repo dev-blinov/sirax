@@ -77,4 +77,4 @@ const getKLines = async (params) => {
   }
 };
 
-module.exports = { getAccount, getExchangeInfo };
+module.exports = { getAccount, getExchangeInfo, getKLines };
